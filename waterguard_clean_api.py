@@ -7,9 +7,12 @@ import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 import seaborn as sns
+from pathlib import Path
 
 
-df = pd.read_csv("rajasthan_water_shortage_prediction_synthetic.csv")
+BASE_DIR = Path(__file__).resolve().parent
+CSV_PATH = BASE_DIR / "rajasthan_water_shortage_prediction_synthetic.csv"
+df = pd.read_csv(CSV_PATH)
 df
 
 df.shape
@@ -764,36 +767,12 @@ for locality in available_localities:
     print(locality)
 
 # ============================================================
-# WATERGUARD — COMPLETE API BUILD + LOCAL TEST
-# Run this ONE cell
-# ============================================================
 
-import os
-import time
-import subprocess
-from pathlib import Path
 
-# ------------------------------------------------------------
-# 1. Stop any old FastAPI/Uvicorn server
-# ------------------------------------------------------------
-
-subprocess.run(
-    ["pkill", "-f", "uvicorn"],
-    stdout=subprocess.DEVNULL,
-    stderr=subprocess.DEVNULL
-)
-
-time.sleep(2)
-
-# ------------------------------------------------------------
-# 2. Create FastAPI application
-# ------------------------------------------------------------
-
-app_code = r'''
 from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 import pandas as pd
-import os
+from pathlib import Path
 
 app = FastAPI(
     title="WaterGuard API",
@@ -817,19 +796,16 @@ app.add_middleware(
 # DATA
 # ------------------------------------------------------------
 
-DATA_FILE = "rajasthan_water_shortage_prediction_synthetic.csv"
+BASE_DIR = Path(__file__).resolve().parent
+CSV_PATH = BASE_DIR / "rajasthan_water_shortage_prediction_synthetic.csv"
 
-if not os.path.exists(DATA_FILE):
+if not CSV_PATH.exists():
     raise FileNotFoundError(
-        f"{DATA_FILE} not found in {os.getcwd()}"
+        f"{CSV_PATH.name} not found in {BASE_DIR}"
     )
 
-df = pd.read_csv(DATA_FILE)
+df = pd.read_csv(CSV_PATH)
 df.columns = df.columns.str.strip()
-
-print("Dataset loaded successfully")
-print("Rows:", len(df))
-print("Columns:", list(df.columns))
 
 
 # ------------------------------------------------------------
@@ -1189,10 +1165,6 @@ def get_locality(locality: str):
 
     except Exception as e:
 
-        print("========== API ERROR ==========")
-        print(repr(e))
-        print("================================")
-
         raise HTTPException(
             status_code=500,
             detail={
@@ -1200,119 +1172,3 @@ def get_locality(locality: str):
                 "message": str(e)
             }
         )
-'''
-
-# ------------------------------------------------------------
-# 3. Write API file
-# ------------------------------------------------------------
-
-Path("waterguard_clean_api.py").write_text(
-    app_code,
-    encoding="utf-8"
-)
-
-print("API FILE CREATED")
-print("waterguard_clean_api.py")
-
-
-# ------------------------------------------------------------
-# 4. Start FastAPI
-# ------------------------------------------------------------
-
-server = subprocess.Popen(
-    [
-        "uvicorn",
-        "waterguard_clean_api:app",
-        "--host",
-        "0.0.0.0",
-        "--port",
-        "8000"
-    ],
-    stdout=subprocess.PIPE,
-    stderr=subprocess.STDOUT,
-    text=True
-)
-
-time.sleep(5)
-
-print()
-print("FASTAPI SERVER STARTED")
-print("PID:", server.pid)
-print("LOCAL URL: http://127.0.0.1:8000")
-
-
-# ------------------------------------------------------------
-# 5. Test API
-# ------------------------------------------------------------
-
-import requests
-
-try:
-
-    response = requests.get(
-        "http://127.0.0.1:8000/health",
-        timeout=10
-    )
-
-    print()
-    print("HEALTH TEST")
-    print("STATUS:", response.status_code)
-    print("RESPONSE:", response.text)
-
-
-    response = requests.get(
-        "http://127.0.0.1:8000/locality/Aligarh",
-        timeout=10
-    )
-
-    print()
-    print("ALIGARH TEST")
-    print("STATUS:", response.status_code)
-    print("RESPONSE:", response.text)
-
-
-except Exception as e:
-
-    print()
-    print("TEST ERROR:")
-    print(repr(e))
-
-import requests
-
-url = "http://127.0.0.1:8000/locality/Aligarh"
-
-response = requests.get(
-    url,
-    headers={"Origin": "https://your-frontend.github.io"}
-)
-
-print("STATUS:", response.status_code)
-print("CORS HEADER:", response.headers.get("access-control-allow-origin"))
-print("RESPONSE:", response.json())
-
-# SHOW THE ACTUAL FASTAPI STARTUP ERROR
-
-import subprocess
-import time
-
-result = subprocess.run(
-    [
-        "uvicorn",
-        "waterguard_clean_api:app",
-        "--host", "0.0.0.0",
-        "--port", "8000"
-    ],
-    capture_output=True,
-    text=True,
-    timeout=5
-)
-
-print("========== UVICORN OUTPUT ==========")
-print(result.stdout)
-print(result.stderr)
-print("====================================")
-
-import os
-
-print("CSV files in /content:")
-print([f for f in os.listdir("/content") if f.endswith(".csv")])
