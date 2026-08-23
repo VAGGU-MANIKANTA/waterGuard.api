@@ -9,7 +9,7 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 
 
-df = pd.read_csv('/content/rajasthan_water_shortage_prediction_synthetic.csv')
+df = pd.read_csv("rajasthan_water_shortage_prediction_synthetic.csv")
 df
 
 df.shape
